@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="cn.nipc.mobiletool"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="8"
+        android:targetSdkVersion="10" />
+    
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@android:style/Theme.NoTitleBar" >
+        <activity
+            android:name="cn.nipc.mobiletool.MainActivity"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name="cn.nipc.mobiletool.AboutActivity" >
+        </activity>
+        <activity android:name="cn.nipc.mobiletool.SetActivity" >
+        </activity>
+        <activity android:name="cn.nipc.mobiletool.UserInfoActivity" >
+        </activity>
+        <activity
+            android:name="cn.nipc.mobiletool.networktrafficmonitor.NetworkTrafficMonitorActivity"
+            android:label="@string/title_activity_network_traffic_monitor" >
+        </activity>
+        <receiver 
+            android:name=".BootBroadcastReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+        <receiver 
+            android:name=".ShutdownBroadcastReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.ACTION_SHUTDOWN"/>
+            </intent-filter>
+        </receiver>
+        <service
+            android:name=".BootInitialService">
+        </service>
+        <service
+            android:name=".ShutdownService">
+        </service>
+        <service 
+            android:name="cn.nipc.mobiletool.networktrafficmonitor.TimingQueryService"></service>
+    </application>
+
+</manifest>
