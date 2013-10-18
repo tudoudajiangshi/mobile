@@ -10,10 +10,11 @@ import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.TrafficStats;
 import android.util.Log;
-import cn.nipc.mobiletool.MainActivity;
 
 
 /**
@@ -23,17 +24,18 @@ import cn.nipc.mobiletool.MainActivity;
  * 描述	->		实现流量监控封装
  * 标签	->		监控封装
  */
+
 public class NetworkTrafficMonitor {
 	public static String TAG = "NetworkTrafficMonitor";
 	
 	/**
-	 * 函数名	->		getOneDayNetTraffic
-	 * 作者		->		谢健
-	 * 时间		->		2013-8-8 下午1:25:20
-	 * 描述		->		获得当天使用的流量  （每次关机前需要执行一次 每天晚上24:00也许要执行一次）
-	 * 参数		->		dayNum当天的号数  c上下文，查询数据库需要 
-	 * 返回值	->		double
-	 */
+	 * 函数名		->		getTodayNetTraffic
+	 * 作者		-> 	谢健
+	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
+	 * 参数		-> 	Context（上下文）
+	 * 返回值		-> 	double
+	 * 时间		->	 	2013-9-11 上午10:17:54 
+	*/
 	public static double getTodayNetTraffic(Context c) {
 		double now_query_dt;		
 		double now_query_ut;
@@ -87,6 +89,13 @@ public class NetworkTrafficMonitor {
 			cursor.close();
 			now_day_usage_dt = last_day_usage_dt + now_query_dt - last_query_dt;
 			now_day_usage_ut = last_day_usage_ut + now_query_ut - last_query_ut;
+			//如果开机自启动被禁用 则可能出现负值 需要额外处理
+			if( (now_query_dt - last_query_dt)<0 || 
+					(now_query_ut - last_query_ut)<0 )
+			{
+				now_day_usage_dt = now_query_dt + last_day_usage_dt;
+				now_day_usage_ut = now_query_ut + last_day_usage_ut;
+			}
 			ContentValues values = new ContentValues();
 			values.put("dt", now_day_usage_dt);
 			values.put("ut", now_day_usage_ut);
@@ -107,6 +116,14 @@ public class NetworkTrafficMonitor {
 		return now_day_usage_dt + now_day_usage_ut;
 	}
 	
+	/**
+	 * 函数名		->		getOneDayNetTraffic
+	 * 作者		->		谢健
+	 * 时间		->		2013-8-8 下午1:25:20
+	 * 描述		->		获得当天使用的流量  （每次关机前需要执行一次 每天晚上24:00也许要执行一次）
+	 * 参数		->		dayNum当天的号数  c上下文，查询数据库需要 
+	 * 返回值		->		double
+	 */
 	public static double getOneDayNetTraffic(int dayNum, Context c) {
 		double ut = 0;
 		double dt = 0;
@@ -173,11 +190,134 @@ public class NetworkTrafficMonitor {
 	 * 作者		->		谢健
 	 * 时间		->		2013-8-8 下午1:29:58
 	 * 描述		->		获得每个应用当月使用的流量
-	 * 参数		->	   	 无	
+	 * 参数		->	   	 	
 	 * 返回值	->		List<AppTrafficInfo>
 	 */
-	public static List<AppTrafficInfo> getMonthNetTrafficPerApp() {
-		ArrayList appInfoList = new ArrayList<AppTrafficInfo>();
+	public static List<AppTrafficInfo> getMonthNetTrafficPerApp(Context c) {
+		ArrayList<AppTrafficInfo> appInfoList = new ArrayList<AppTrafficInfo>();
+		PackageManager pm = c.getApplicationContext().getPackageManager();
+		int monthNum;
+		
+		List<ApplicationInfo> appList;  
+		appList = pm.getInstalledApplications(PackageManager.GET_PERMISSIONS);  
+		
+		Calendar cal = Calendar.getInstance();
+		cal.setTimeInMillis(System.currentTimeMillis());
+		monthNum = cal.get(Calendar.MONTH) + 1;
+		
+		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
+		try{
+			Cursor cursor = trafficInfoDBHelper.queryAppTraffic();
+			while(cursor.moveToNext()) {
+				AppTrafficInfo appTrafficInfo = new AppTrafficInfo();
+				int date = cursor.getInt(cursor.getColumnIndex("date"));
+				//判断这次查询与上次查询呢是否为在不同的月份, 如果是需要先进行数据 清零操作
+				if(date != monthNum){
+					ContentValues value = new ContentValues();
+					value.put("ut_month", 0);
+					value.put("dt_mnth", 0);
+					value.put("date",monthNum);
+				}
+				String apk_name = cursor.getString(cursor.getColumnIndex("apk"));		
+				double ut_month = cursor.getDouble(cursor.getColumnIndex("ut_month"));
+				double dt_month = cursor.getDouble(cursor.getColumnIndex("dt_month"));
+				double dt_last_query = cursor.getDouble(cursor.getColumnIndex("dt_last_query"));
+				double ut_last_query = cursor.getDouble(cursor.getColumnIndex("ut_last_query"));
+				appTrafficInfo.downloadTraffic = dt_month;
+				appTrafficInfo.uploadTraffic = ut_month;
+				appTrafficInfo.appName = apk_name;
+				appTrafficInfo.dt_last_query = dt_last_query;
+				appTrafficInfo.ut_last_query = ut_last_query;
+				appTrafficInfo.date = date;
+				appInfoList.add(appTrafficInfo);
+			}
+			for(ApplicationInfo ap : appList) {
+				double dt_now_query = TrafficStats.getUidRxBytes(ap.uid);
+				double ut_now_query = TrafficStats.getUidTxBytes(ap.uid);
+				//不消耗流量的应用直接跳过
+				if ((dt_now_query + ut_now_query) <= 0)
+					continue;
+				
+				//如果为空 说明是第一次操作 所以每个都需要插入 所以初始值为1 
+				int NeedInsert = 1;
+				
+				for(AppTrafficInfo appTrafficInfo : appInfoList){
+					NeedInsert = 0;
+					if(appTrafficInfo.appName.equalsIgnoreCase(ap.packageName)) {
+						//如果开机自启动被禁用 则可能出现负值 需要额外处理
+						if( (dt_now_query - appTrafficInfo.dt_last_query)<0 || 
+								(ut_now_query - appTrafficInfo.ut_last_query)<0 )
+						{
+							appTrafficInfo.downloadTraffic += dt_now_query ;
+							appTrafficInfo.uploadTraffic += ut_now_query ;
+						}
+						else {
+							appTrafficInfo.downloadTraffic += dt_now_query - appTrafficInfo.dt_last_query; 
+							appTrafficInfo.uploadTraffic += ut_now_query - appTrafficInfo.ut_last_query;
+						}
+						appTrafficInfo.dt_last_query = dt_now_query;
+						appTrafficInfo.ut_last_query = ut_now_query;
+						appTrafficInfo.date = monthNum;
+						//更新数据库
+						ContentValues value1 = new ContentValues();
+						value1.put("apk", appTrafficInfo.appName);
+						value1.put("ut_month", appTrafficInfo.uploadTraffic);
+						value1.put("dt_month", appTrafficInfo.downloadTraffic);
+						value1.put("dt_last_query", dt_now_query);
+						value1.put("ut_last_query", ut_now_query);
+						value1.put("date", monthNum);
+						trafficInfoDBHelper.updateAppTraffic(value1);
+						break;
+					}
+					//如果循环到最后 仍没有匹配的  说明有新安装的耗费流量的应用。需要数据库插入操作。
+					if(appInfoList.indexOf(appTrafficInfo) == appInfoList.size()-1){
+						NeedInsert = 1;
+					}
+				}
+				if(NeedInsert == 1){
+					AppTrafficInfo appTrafficInfo = new AppTrafficInfo();
+					appTrafficInfo.downloadTraffic = dt_now_query ;
+					appTrafficInfo.uploadTraffic = ut_now_query;
+					appTrafficInfo.appName = ap.packageName;
+					appTrafficInfo.date = monthNum;
+					appInfoList.add(appTrafficInfo);
+					//数据库中插入记录
+					ContentValues value2 = new ContentValues();
+					value2.put("apk", appTrafficInfo.appName);
+					value2.put("ut_month", appTrafficInfo.uploadTraffic);
+					value2.put("dt_month", appTrafficInfo.downloadTraffic);
+					value2.put("date", monthNum);
+					value2.put("dt_last_query",dt_now_query);
+					value2.put("ut_last_query", ut_now_query);
+					trafficInfoDBHelper.insertAppTraffic(value2);
+				}	
+			}
+			//从应用列表中删除已经卸载且流量为0的应用。
+			for(int i = 0; i < appInfoList.size();i++){
+				AppTrafficInfo appTrafficInfo = appInfoList.get(i);
+				if((appTrafficInfo.downloadTraffic + appTrafficInfo.uploadTraffic) <= 0){
+					appInfoList.remove(i);
+					i--;
+					//从数据库中删除该条
+					trafficInfoDBHelper.delAppTraffic(appTrafficInfo.appName);
+				}
+			}
+		}catch (Exception e) {
+			Log.e(TAG, e.getMessage());
+		}finally {
+			trafficInfoDBHelper.close();
+		}
+		//最后获得根据包名 或者每个应用的图标和名字,一般系统程序没有图标，先过滤掉
+		try{
+			for (AppTrafficInfo appTrafficInfo : appInfoList){
+				String appName = appTrafficInfo.appName;
+				appTrafficInfo.appIcon = pm.getApplicationIcon(appName);
+				ApplicationInfo app= pm.getApplicationInfo(appName,PackageManager.GET_UNINSTALLED_PACKAGES);
+				appTrafficInfo.label = pm.getApplicationLabel(app).toString();
+			}
+		}catch (Exception e) {
+			Log.e(TAG, e.getMessage()+"找不到这个包名的app具体信息");
+		}
 		return appInfoList;
 	}
 
@@ -194,13 +334,13 @@ public class NetworkTrafficMonitor {
 	}
 
 	/**
-	 * 函数名	->		NetworkTrafficMonitorInitial
+	 * 函数名		->		NetworkTrafficMonitorInitial
 	 * 作者		->		谢健
 	 * 时间		->		2013-8-8 下午1:33:21
 	 * 描述		->		监视器初始化,安装后第一次运行时需要的初始动作：1.设置闹钟，每天24:00更新一次数据库 2.数据库初始化（两个表的内容的初始化）
-	 * 					3.测试是否支持TrafficState类。
+	 * 					    3.测试是否支持TrafficState类。
 	 * 参数		->		无
-	 * 返回值	->		void
+	 * 返回值		->		void
 	 */
 	public static void NetworkTrafficMonitorInitial(Context c) {
 		initialFirstNetTrafficQuery(c);
@@ -245,23 +385,25 @@ public class NetworkTrafficMonitor {
 	 * 返回值	->		void
 	 */
 	public static void initialSetTimingQuery(Context c) {
-		Calendar cal = Calendar.getInstance();
-		cal.setTimeInMillis(System.currentTimeMillis());
-		cal.set(Calendar.HOUR_OF_DAY, 23);
-		cal.set(Calendar.MINUTE, 58);
-		Intent intent=new Intent(c,MainActivity.class);
+//		Calendar cal = Calendar.getInstance();
+//		cal.setTimeInMillis(System.currentTimeMillis());
+//		//cal.set(Calendar.HOUR_OF_DAY, 23);
+//		cal.set(Calendar.MINUTE, 59);
+		Intent intent=new Intent(c,TrafficQueryService.class);
 		PendingIntent pi = PendingIntent.getService(c, 0, intent, 0);
 		AlarmManager aManager = (AlarmManager)c.getSystemService(Service.ALARM_SERVICE);
-		aManager.setRepeating(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), 1000*60*60*24, pi);
+		//先将AlarmManager停止
+		aManager.cancel(pi);
+		aManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000*60*5, pi);
 	}
 
 	/**
-	 * 函数名	->		initialMonitor
+	 * 函数名		->		initialMonitor
 	 * 作者		->		谢健
 	 * 时间		->		2013-8-8 下午1:34:39
 	 * 描述		->		每次打开这个模块需要的初始化：1.获得已安装的所有应用，查询是否有新的应用安装
 	 * 参数		->		
-	 * 返回值	->		void
+	 * 返回值		->		void
 	 */
 	public static void initialMonitor() {
 		

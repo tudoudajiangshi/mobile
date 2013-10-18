@@ -1,13 +1,13 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-	android:orientation="vertical"
     tools:context=".NetworkTrafficMonitorActivity" >
 
     <RelativeLayout
         android:layout_width="fill_parent"
         android:layout_height="40dp"
+        android:id="@+id/head"
         android:background="#99CC00">
         <TextView 
             android:id="@+id/title"
@@ -22,10 +22,68 @@
         <ImageView
             style="@style/title_image_set"/>
     </RelativeLayout>
-    <android.support.v4.view.ViewPager
-	        android:id="@+id/view_pager"
-	        android:layout_width="fill_parent"
-	        android:layout_height="wrap_content">
-	</android.support.v4.view.ViewPager>
+    
+    <LinearLayout
+	    android:id="@+id/monitor_foot"
+	    android:layout_width="fill_parent"
+	    android:layout_height="50dp"
+	    android:layout_alignParentBottom="true"
+	    android:background="#000000"
+	    android:orientation="horizontal" >
 
-</LinearLayout>
+        <LinearLayout 
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:id="@+id/network_traffic_monitor_image">
+            <ImageView 
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:src="@drawable/traffic_main_unchecked"/>
+            <TextView
+                style="@style/traffic_monitor_bottom_button"
+                android:text="@string/network_traffic_monitor" />
+        </LinearLayout>
+	    <LinearLayout 
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:id="@+id/network_traffic_firewall_image">
+            <ImageView            
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:src="@drawable/traffic_tab_firewall_unchecked"/>
+            <TextView 
+               style="@style/traffic_monitor_bottom_button"
+               android:text="@string/firework"/>
+        </LinearLayout>
+        <LinearLayout 
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:id="@+id/network_traffic_rank_image">
+            <ImageView 
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:src="@drawable/traffic_list_unchecked"/>
+            <TextView 
+                style="@style/traffic_monitor_bottom_button"
+                android:text="@string/net_traffic_range"/>
+        </LinearLayout>
+	</LinearLayout>
+	
+    <android.support.v4.view.ViewPager
+        android:id="@+id/view_pager"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/monitor_foot"
+		android:layout_below="@id/head">
+
+	</android.support.v4.view.ViewPager>
+</RelativeLayout>

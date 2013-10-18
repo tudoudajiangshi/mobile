@@ -1,9 +1,7 @@
 package cn.nipc.mobiletool;
 
 import java.util.ArrayList;
-
 import cn.nipc.mobiletool.networktrafficmonitor.NetworkTrafficMonitor;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -53,12 +51,18 @@ public class MainActivity extends Activity {
 			spEditor.putBoolean("isFirstRun", false);  
 			spEditor.commit();  
 			//一些安装的时候需要的初始化
+			//初始化流量查询
 			NetworkTrafficMonitor.initialFirstNetTrafficQuery(this);
 		}
+		//初始化定时流量查询 如果手机设置了禁止自启动 则需要每次启动应用程序是启动定时查询流量。
+		NetworkTrafficMonitor.initialSetTimingQuery(this);
+		
 		initViewPager();
 		initTextView();
 		initImageView();
 		initBottomView();
+		//测试一些函数
+		
 	}
 	
 	/**

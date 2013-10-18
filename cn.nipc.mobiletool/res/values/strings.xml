@@ -13,5 +13,6 @@
     <string name="main_activity_tag3">工具</string>
     <string name="title_activity_network_traffic_monitor">NetworkTrafficMonitor</string>
     <string name="network_traffic_monitor">流量监控</string>
-
+    <string name="firework">联网防火墙</string>
+	<string name="net_traffic_range">流量排行</string>
 </resources>

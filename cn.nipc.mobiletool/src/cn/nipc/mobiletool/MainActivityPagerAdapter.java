@@ -14,6 +14,7 @@ import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
 
 /**
  * 类名	 		MainActivityPagerAdapter
@@ -62,7 +63,7 @@ public class MainActivityPagerAdapter extends PagerAdapter{
 	     ((ViewPager) container).removeView(listView.get(index));
 	}
 	/* (non-Javadoc)
-	 * 装在某个view对象
+	 * 装载某个view对象 ，即显示某个其中一个view,如果显示之前需要有大量工作要做，需要再次进行，而不能放在主activity中。
 	 * @see android.support.v4.view.PagerAdapter#instantiateItem(android.view.ViewGroup, int)
 	 */
 	@Override

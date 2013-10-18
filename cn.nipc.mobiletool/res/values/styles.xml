@@ -46,6 +46,13 @@
         <item name="android:layout_width">fill_parent</item>
         <item name="android:layout_height">40dp</item>
     </style>
+    <style name="traffic_monitor_bottom_button">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">#ffffff</item>
+        <item name="android:textSize">12sp</item>
+    </style>
     
 
 </resources>

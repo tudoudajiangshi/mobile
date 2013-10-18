@@ -20,9 +20,9 @@ public class TrafficInfoDBHelper extends SQLiteOpenHelper{
     private static final String TBL_NAME_APP_TRAFFIC = "app_traffic";  
     private static final String TBL_NAME_ALL_TRAFFIC = "all_traffic";  
     private static final String CREATE_TBL_APP_TRAFFIC = " create table "  
-            + " app_traffic(id INTEGER primary key autoincrement,apk TEXT,dt_day DOUBLE," +
-            " ut_day DOUBLE,dt_month DOUBLE,ut_month DOUBLE,access_wifi INTEGER," +
-            "access_2g_3g INTEGER,dt_last_query DOUBLE,ut_last_query DOUBLE)";  
+            + " app_traffic(id INTEGER primary key autoincrement,apk TEXT," +
+            "dt_month DOUBLE,ut_month DOUBLE,access_wifi INTEGER," +
+            "access_2g_3g INTEGER,dt_last_query DOUBLE,ut_last_query DOUBLE,date INTEGER)";  
     private static final String CREATE_TBL_ALL_TRAFFIC = " create table "  
             + " all_traffic(id INTEGER primary key autoincrement,date INTEGER,dt DOUBLE,ut DOUBLE) ";  
     private SQLiteDatabase db;  
@@ -78,8 +78,8 @@ public class TrafficInfoDBHelper extends SQLiteOpenHelper{
     public Cursor queryAppTraffic() throws Exception{  
         SQLiteDatabase db = getReadableDatabase();  
         Cursor c = db.query(TBL_NAME_APP_TRAFFIC, null, null, null, null, null, null);
-        if(c.getCount() == 0)
-        	throw new TrafficDBAccessException("query error");
+//        if(c.getCount() == 0)
+//        	throw new TrafficDBAccessException("query error");
         return c;  
     }  
 

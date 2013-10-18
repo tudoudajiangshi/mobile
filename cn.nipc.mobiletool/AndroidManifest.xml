@@ -9,6 +9,7 @@
         android:targetSdkVersion="10" />
     
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     
     <application
         android:allowBackup="true"
@@ -35,16 +36,24 @@
         </activity>
         <receiver 
             android:name=".BootBroadcastReceiver">
-            <intent-filter>
+            <intent-filter android:priority="0x7fffffff">
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
-        </receiver>
+        </receiver>  
         <receiver 
             android:name=".ShutdownBroadcastReceiver">
-            <intent-filter>
+            <intent-filter android:priority="0x7fffffff">
                 <action android:name="android.intent.action.ACTION_SHUTDOWN"/>
             </intent-filter>
         </receiver>
+<!--         监测设备网络变化 读取数据库会出现error 而且经考虑 监测流量也不需要网络状态的变化 -->
+<!--         <receiver -->
+<!--             android:name="cn.nipc.mobiletool.networktrafficmonitor.NetstateChangeReceiver"> -->
+<!--             <intent-filter android:priority="0x7fffffff"> -->
+<!--                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" /> -->
+<!--                  action android:name="android.intent.action.ANY_DATA_STATE" / -->
+<!--             </intent-filter> -->
+<!--         </receiver> -->
         <service
             android:name=".BootInitialService">
         </service>
@@ -52,7 +61,8 @@
             android:name=".ShutdownService">
         </service>
         <service 
-            android:name="cn.nipc.mobiletool.networktrafficmonitor.TimingQueryService"></service>
+            android:name="cn.nipc.mobiletool.networktrafficmonitor.TrafficQueryService">    
+        </service>
     </application>
 
 </manifest>

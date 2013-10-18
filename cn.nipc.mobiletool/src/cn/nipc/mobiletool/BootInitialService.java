@@ -12,7 +12,6 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
 import cn.nipc.mobiletool.networktrafficmonitor.NetworkTrafficMonitor;
 
 /**
@@ -33,8 +32,18 @@ public class BootInitialService extends Service{
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		Toast.makeText(this, "服务启动", Toast.LENGTH_SHORT).show();
-		NetworkTrafficMonitor.initialFirstNetTrafficQuery(this);
+//		Builder b = new AlertDialog.Builder(this);
+//	    b.setPositiveButton("ok", new DialogInterface.OnClickListener(){
+//	        @Override
+//	        public void onClick(DialogInterface dialog, int which) {
+//	            //finish();
+//	        }
+//	    });
+//	    b.create().show();
+		Log.e(TAG,"服务已开启");
+		//Toast.makeText(this, "开机服务启动", Toast.LENGTH_LONG).show();
+		//NetworkTrafficMonitor.initialFirstNetTrafficQuery(this);
+		//NetworkTrafficMonitor.initialSetTimingQuery(this);
 		//终止本服务
 		this.stopSelf();
 		return START_STICKY;
@@ -42,6 +51,6 @@ public class BootInitialService extends Service{
 	
 	@Override
 	public void onDestroy() {
-		Log.v(TAG,"服务已关闭");
+		Log.e(TAG,"服务已关闭");
 	}
 }

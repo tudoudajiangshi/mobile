@@ -11,33 +11,23 @@ import android.graphics.drawable.Drawable;
  * 标签	->		
  */
 public class AppTrafficInfo {
-	private String appName;
-	private Drawable appIcon;
-	private double downloadTraffic;
-	private double uploadTraffic;
-
-	public String getAppName() {
-		return appName;
-	}
-	public void setAppName(String appName) {
-		this.appName = appName;
-	}
-	public Drawable getAppIcon() {
-		return appIcon;
-	}
-	public void setAppIcon(Drawable appIcon) {
-		this.appIcon = appIcon;
-	}
-	public double getDownloadTraffic() {
-		return downloadTraffic;
-	}
-	public void setDownloadTraffic(double downloadTraffic) {
-		this.downloadTraffic = downloadTraffic;
-	}
-	public double getUploadTraffic() {
-		return uploadTraffic;
-	}
-	public void setUploadTraffic(double uploadTraffic) {
-		this.uploadTraffic = uploadTraffic;
+	public String appName;
+	public Drawable appIcon;
+	public double downloadTraffic;
+	public double uploadTraffic;
+	public double dt_last_query;
+	public double ut_last_query;
+	public int date;
+	public String label;
+	
+	public AppTrafficInfo(){
+		this.appIcon = null;
+		this.appName = null;
+		this.downloadTraffic = -1;
+		this.uploadTraffic = -1;
+		this.ut_last_query = -1;
+		this.dt_last_query = -1;
+		this.date = -1;
+		this.label = null;
 	}
 }

@@ -2,15 +2,23 @@ package cn.nipc.mobiletool.networktrafficmonitor;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
 import android.view.Menu;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.GridView;
+import android.widget.ImageView;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 import cn.nipc.mobiletool.MainActivityPagerAdapter;
 import cn.nipc.mobiletool.R;
@@ -42,6 +50,11 @@ public class NetworkTrafficMonitorActivity extends Activity {
 			spEditor.commit();  
 		}
 		initViewPager();
+		//测试一些函数
+		/*List<AppTrafficInfo> appInfoList = NetworkTrafficMonitor.getMonthNetTrafficPerApp(this);
+		for (AppTrafficInfo appTrafficInfo : appInfoList){
+			Log.e(TAG, appTrafficInfo.appName+"**"+appTrafficInfo.label);
+		}*/
 	}
 
 	@Override
@@ -52,12 +65,12 @@ public class NetworkTrafficMonitorActivity extends Activity {
 	}
 	
 	/**
-	 * 函数名	->		initViewPager
+	 * 函数名		->		initViewPager
 	 * 作者		->		谢健
 	 * 时间		->		2013-8-7 下午1:46:19
 	 * 描述		->		初始化ViewPager，共分三个页面 1.流量监控 2.联网防火墙 3.统计排行
 	 * 参数		->		无
-	 * 返回值	->		void
+	 * 返回值		->		void
 	 */
 	private void initViewPager() {
 		viewPager = (ViewPager) findViewById(R.id.view_pager);
@@ -68,6 +81,7 @@ public class NetworkTrafficMonitorActivity extends Activity {
 		View view1= getLayoutInflater().inflate(R.layout.network_traffic_firewall, null);
 		
 		View view2= getLayoutInflater().inflate(R.layout.network_traffic_rank, null);
+		initView2(view2);
 		
 		listView.add(view0);
 		listView.add(view1);
@@ -100,6 +114,102 @@ public class NetworkTrafficMonitorActivity extends Activity {
 		
 		Button buttonSetMonth = (Button)view0.findViewById(R.id.set_month);
 		
+	}
+	
+	/**
+	 * 函数名		->		initView2
+	 * 作者		-> 	谢健
+	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
+	 * 参数		-> 	View
+	 * 返回值		-> 	void
+	 * 时间		->	 	2013-10-17 上午11:05:25 
+	*/
+	private void initView2(View view2) {
+		ListView listview2 =  (ListView) view2.findViewById(R.id.listview_rank);
+		final List<AppTrafficInfo> list = NetworkTrafficMonitor.getMonthNetTrafficPerApp(this);
+		ListAdapter listAdapter = new ListAdapter() {			
+			@Override
+			public void unregisterDataSetObserver(DataSetObserver observer) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void registerDataSetObserver(DataSetObserver observer) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public boolean isEmpty() {
+				return list.isEmpty();
+			}
+			
+			@Override
+			public boolean hasStableIds() {
+				// TODO Auto-generated method stub
+				return false;
+			}
+			
+			@Override
+			public int getViewTypeCount() {
+				// TODO Auto-generated method stub
+				return 1;
+			}
+			
+			@Override
+			public View getView(int position, View convertView, ViewGroup parent) {
+				View item = getLayoutInflater().inflate(R.layout.network_traffic_rank_item, null);
+				ImageView iv = (ImageView) item.findViewById(R.id.icon);
+				TextView tv_label = (TextView) item.findViewById(R.id.label);
+				TextView tv_dt = (TextView) item.findViewById(R.id.dt);
+				TextView tv_ut = (TextView) item.findViewById(R.id.ut);
+				
+				iv.setImageDrawable(list.get(position).appIcon);
+				tv_label.setText(list.get(position).label);
+				tv_dt.setText(" "+list.get(position).downloadTraffic);
+				tv_ut.setText(" "+list.get(position).uploadTraffic);
+				
+				return item;
+			}
+			
+			@Override
+			public int getItemViewType(int position) {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+			
+			@Override
+			public long getItemId(int position) {
+				// TODO Auto-generated method stub
+				return position;
+			}
+			
+			@Override
+			public Object getItem(int position) {
+				// TODO Auto-generated method stub
+				return list.get(position);
+			}
+			
+			@Override
+			public int getCount() {
+				// TODO Auto-generated method stub
+				return list.size();
+			}
+			
+			@Override
+			public boolean isEnabled(int position) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+			
+			@Override
+			public boolean areAllItemsEnabled() {
+				// TODO Auto-generated method stub
+				return false;
+			}
+		}; 
+		listview2.setAdapter(listAdapter);		
 	}
 
 }
