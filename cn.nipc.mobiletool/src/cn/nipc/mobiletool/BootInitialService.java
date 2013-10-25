@@ -41,9 +41,9 @@ public class BootInitialService extends Service{
 //	    });
 //	    b.create().show();
 		Log.e(TAG,"服务已开启");
-		//Toast.makeText(this, "开机服务启动", Toast.LENGTH_LONG).show();
-		//NetworkTrafficMonitor.initialFirstNetTrafficQuery(this);
-		//NetworkTrafficMonitor.initialSetTimingQuery(this);
+		//流量监控相关 1.重启后上次查询数据清零 2.设置定时更新数据库
+		NetworkTrafficMonitor.initialForBootDoNetworkTrafficQuery(this);
+		NetworkTrafficMonitor.initialSetTimingQuery(this);
 		//终止本服务
 		this.stopSelf();
 		return START_STICKY;

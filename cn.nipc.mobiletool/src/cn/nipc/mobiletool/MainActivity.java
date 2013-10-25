@@ -52,10 +52,10 @@ public class MainActivity extends Activity {
 			spEditor.commit();  
 			//一些安装的时候需要的初始化
 			//初始化流量查询
-			NetworkTrafficMonitor.initialFirstNetTrafficQuery(this);
+			NetworkTrafficMonitor.initialForInstallDoNetTrafficQuery(this);
+			//NetworkTrafficMonitor.initialSetTimingQuery(this);
 		}
 		//初始化定时流量查询 如果手机设置了禁止自启动 则需要每次启动应用程序是启动定时查询流量。
-		NetworkTrafficMonitor.initialSetTimingQuery(this);
 		
 		initViewPager();
 		initTextView();

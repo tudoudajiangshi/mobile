@@ -55,6 +55,7 @@ public class NetworkTrafficMonitorActivity extends Activity {
 		for (AppTrafficInfo appTrafficInfo : appInfoList){
 			Log.e(TAG, appTrafficInfo.appName+"**"+appTrafficInfo.label);
 		}*/
+		//NetworkTrafficMonitor.updateMonthNetTrafficPerApp(this);
 	}
 
 	@Override
@@ -167,8 +168,8 @@ public class NetworkTrafficMonitorActivity extends Activity {
 				
 				iv.setImageDrawable(list.get(position).appIcon);
 				tv_label.setText(list.get(position).label);
-				tv_dt.setText(" "+list.get(position).downloadTraffic);
-				tv_ut.setText(" "+list.get(position).uploadTraffic);
+				tv_dt.setText("下载："+format(list.get(position).downloadTraffic));
+				tv_ut.setText("上传："+format(list.get(position).uploadTraffic));
 				
 				return item;
 			}
@@ -210,6 +211,17 @@ public class NetworkTrafficMonitorActivity extends Activity {
 			}
 		}; 
 		listview2.setAdapter(listAdapter);		
+	}
+	
+	private String format(Double a){
+		String formatString;
+		if(a/1024/1024 < 0.5){
+			formatString = String.format("%5.2fKB", a/1024);
+		}
+		else {
+			formatString = String.format("%5.2fMB", a/1024/1024);
+		}
+		return formatString ;
 	}
 
 }

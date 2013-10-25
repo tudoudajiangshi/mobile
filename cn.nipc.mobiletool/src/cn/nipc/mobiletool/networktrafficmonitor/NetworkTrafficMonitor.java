@@ -11,6 +11,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.TrafficStats;
@@ -27,6 +28,8 @@ import android.util.Log;
 
 public class NetworkTrafficMonitor {
 	public static String TAG = "NetworkTrafficMonitor";
+	public static String INTERNET = "android.permission.INTERNET";
+	
 	
 	/**
 	 * 函数名		->		getTodayNetTraffic
@@ -60,7 +63,6 @@ public class NetworkTrafficMonitor {
 		now_query_dt = TrafficStats.getMobileRxBytes();
 		now_query_ut = TrafficStats.getMobileTxBytes();
 		try{
-			
 			cursor  = trafficInfoDBHelper.queryOneDayTraffic(last_query_id);
 			cursor.moveToNext();
 			last_query_dt = cursor.getDouble(cursor.getColumnIndex("dt"));
@@ -189,21 +191,16 @@ public class NetworkTrafficMonitor {
 	 * 函数名	->		getMonthNetTrafficPerApp
 	 * 作者		->		谢健
 	 * 时间		->		2013-8-8 下午1:29:58
-	 * 描述		->		获得每个应用当月使用的流量
+	 * 描述		->		获得每个应用当月使用的流量,直接查询数据库，不进行更新操作
 	 * 参数		->	   	 	
 	 * 返回值	->		List<AppTrafficInfo>
 	 */
 	public static List<AppTrafficInfo> getMonthNetTrafficPerApp(Context c) {
 		ArrayList<AppTrafficInfo> appInfoList = new ArrayList<AppTrafficInfo>();
 		PackageManager pm = c.getApplicationContext().getPackageManager();
-		int monthNum;
-		
-		List<ApplicationInfo> appList;  
-		appList = pm.getInstalledApplications(PackageManager.GET_PERMISSIONS);  
-		
 		Calendar cal = Calendar.getInstance();
 		cal.setTimeInMillis(System.currentTimeMillis());
-		monthNum = cal.get(Calendar.MONTH) + 1;
+		int monthNum = cal.get(Calendar.MONTH) + 1;
 		
 		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
 		try{
@@ -217,6 +214,7 @@ public class NetworkTrafficMonitor {
 					value.put("ut_month", 0);
 					value.put("dt_mnth", 0);
 					value.put("date",monthNum);
+					trafficInfoDBHelper.updateAppTraffic(value);
 				}
 				String apk_name = cursor.getString(cursor.getColumnIndex("apk"));		
 				double ut_month = cursor.getDouble(cursor.getColumnIndex("ut_month"));
@@ -231,77 +229,6 @@ public class NetworkTrafficMonitor {
 				appTrafficInfo.date = date;
 				appInfoList.add(appTrafficInfo);
 			}
-			for(ApplicationInfo ap : appList) {
-				double dt_now_query = TrafficStats.getUidRxBytes(ap.uid);
-				double ut_now_query = TrafficStats.getUidTxBytes(ap.uid);
-				//不消耗流量的应用直接跳过
-				if ((dt_now_query + ut_now_query) <= 0)
-					continue;
-				
-				//如果为空 说明是第一次操作 所以每个都需要插入 所以初始值为1 
-				int NeedInsert = 1;
-				
-				for(AppTrafficInfo appTrafficInfo : appInfoList){
-					NeedInsert = 0;
-					if(appTrafficInfo.appName.equalsIgnoreCase(ap.packageName)) {
-						//如果开机自启动被禁用 则可能出现负值 需要额外处理
-						if( (dt_now_query - appTrafficInfo.dt_last_query)<0 || 
-								(ut_now_query - appTrafficInfo.ut_last_query)<0 )
-						{
-							appTrafficInfo.downloadTraffic += dt_now_query ;
-							appTrafficInfo.uploadTraffic += ut_now_query ;
-						}
-						else {
-							appTrafficInfo.downloadTraffic += dt_now_query - appTrafficInfo.dt_last_query; 
-							appTrafficInfo.uploadTraffic += ut_now_query - appTrafficInfo.ut_last_query;
-						}
-						appTrafficInfo.dt_last_query = dt_now_query;
-						appTrafficInfo.ut_last_query = ut_now_query;
-						appTrafficInfo.date = monthNum;
-						//更新数据库
-						ContentValues value1 = new ContentValues();
-						value1.put("apk", appTrafficInfo.appName);
-						value1.put("ut_month", appTrafficInfo.uploadTraffic);
-						value1.put("dt_month", appTrafficInfo.downloadTraffic);
-						value1.put("dt_last_query", dt_now_query);
-						value1.put("ut_last_query", ut_now_query);
-						value1.put("date", monthNum);
-						trafficInfoDBHelper.updateAppTraffic(value1);
-						break;
-					}
-					//如果循环到最后 仍没有匹配的  说明有新安装的耗费流量的应用。需要数据库插入操作。
-					if(appInfoList.indexOf(appTrafficInfo) == appInfoList.size()-1){
-						NeedInsert = 1;
-					}
-				}
-				if(NeedInsert == 1){
-					AppTrafficInfo appTrafficInfo = new AppTrafficInfo();
-					appTrafficInfo.downloadTraffic = dt_now_query ;
-					appTrafficInfo.uploadTraffic = ut_now_query;
-					appTrafficInfo.appName = ap.packageName;
-					appTrafficInfo.date = monthNum;
-					appInfoList.add(appTrafficInfo);
-					//数据库中插入记录
-					ContentValues value2 = new ContentValues();
-					value2.put("apk", appTrafficInfo.appName);
-					value2.put("ut_month", appTrafficInfo.uploadTraffic);
-					value2.put("dt_month", appTrafficInfo.downloadTraffic);
-					value2.put("date", monthNum);
-					value2.put("dt_last_query",dt_now_query);
-					value2.put("ut_last_query", ut_now_query);
-					trafficInfoDBHelper.insertAppTraffic(value2);
-				}	
-			}
-			//从应用列表中删除已经卸载且流量为0的应用。
-			for(int i = 0; i < appInfoList.size();i++){
-				AppTrafficInfo appTrafficInfo = appInfoList.get(i);
-				if((appTrafficInfo.downloadTraffic + appTrafficInfo.uploadTraffic) <= 0){
-					appInfoList.remove(i);
-					i--;
-					//从数据库中删除该条
-					trafficInfoDBHelper.delAppTraffic(appTrafficInfo.appName);
-				}
-			}
 		}catch (Exception e) {
 			Log.e(TAG, e.getMessage());
 		}finally {
@@ -310,17 +237,69 @@ public class NetworkTrafficMonitor {
 		//最后获得根据包名 或者每个应用的图标和名字,一般系统程序没有图标，先过滤掉
 		try{
 			for (AppTrafficInfo appTrafficInfo : appInfoList){
-				String appName = appTrafficInfo.appName;
-				appTrafficInfo.appIcon = pm.getApplicationIcon(appName);
-				ApplicationInfo app= pm.getApplicationInfo(appName,PackageManager.GET_UNINSTALLED_PACKAGES);
-				appTrafficInfo.label = pm.getApplicationLabel(app).toString();
+				PackageInfo    pi = pm.getPackageInfo(appTrafficInfo.appName, PackageManager.GET_PERMISSIONS);
+				appTrafficInfo.appIcon = pm.getApplicationIcon(pi.applicationInfo);
+				appTrafficInfo.label = (String)pi.applicationInfo.loadLabel(pm);
 			}
 		}catch (Exception e) {
 			Log.e(TAG, e.getMessage()+"找不到这个包名的app具体信息");
 		}
 		return appInfoList;
 	}
-
+	
+	/**
+	 * 函数名		->		updateMonthNetTrafficPerApp
+	 * 作者		-> 	谢健
+	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)查询每个应用使用的流量，并更新同步到数据库
+	 * 参数		-> 	TODO
+	 * 返回值		-> 	void
+	 * 时间		->	 	2013-10-19 下午3:44:34 
+	*/
+	public static void updateMonthNetTrafficPerApp(Context c){
+		List<AppTrafficInfo> appInfoList = getMonthNetTrafficPerApp(c);
+		PackageManager pm = c.getApplicationContext().getPackageManager();
+		Calendar cal = Calendar.getInstance();
+		cal.setTimeInMillis(System.currentTimeMillis());
+		int monthNum = cal.get(Calendar.MONTH) + 1;
+		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
+		
+		try{
+			for(AppTrafficInfo appTrafficInfo : appInfoList){
+				PackageInfo  pi = pm.getPackageInfo(appTrafficInfo.appName, PackageManager.GET_PERMISSIONS);
+				double dt_now_query = TrafficStats.getUidRxBytes(pi.applicationInfo.uid);
+				double ut_now_query = TrafficStats.getUidTxBytes(pi.applicationInfo.uid);
+				
+				//如果开机自启动被禁用 则可能出现负值 需要额外处理
+				if( (dt_now_query - appTrafficInfo.dt_last_query)<0 || 
+						(ut_now_query - appTrafficInfo.ut_last_query)<0 )
+				{
+					appTrafficInfo.downloadTraffic += dt_now_query ;
+					appTrafficInfo.uploadTraffic += ut_now_query ;
+				}
+				else {
+					appTrafficInfo.downloadTraffic += dt_now_query - appTrafficInfo.dt_last_query; 
+					appTrafficInfo.uploadTraffic += ut_now_query - appTrafficInfo.ut_last_query;
+				}
+				appTrafficInfo.dt_last_query = dt_now_query;
+				appTrafficInfo.ut_last_query = ut_now_query;
+				appTrafficInfo.date = monthNum;
+				//更新数据库
+				ContentValues value1 = new ContentValues();
+				value1.put("apk", appTrafficInfo.appName);
+				value1.put("ut_month", appTrafficInfo.uploadTraffic);
+				value1.put("dt_month", appTrafficInfo.downloadTraffic);
+				value1.put("dt_last_query", dt_now_query);
+				value1.put("ut_last_query", ut_now_query);
+				value1.put("date", monthNum);
+				trafficInfoDBHelper.updateAppTraffic(value1);
+			}
+		}catch(Exception e){
+			Log.e(TAG, e.getMessage());
+		}finally{
+			trafficInfoDBHelper.close();
+		}
+	}
+	
 	/**
 	 * 函数名	->		setAppNetControl
 	 * 作者		->		谢健
@@ -334,34 +313,56 @@ public class NetworkTrafficMonitor {
 	}
 
 	/**
-	 * 函数名		->		NetworkTrafficMonitorInitial
+	 * 函数名		->		initialForBootDoNetworkTrafficQuery
 	 * 作者		->		谢健
 	 * 时间		->		2013-8-8 下午1:33:21
-	 * 描述		->		监视器初始化,安装后第一次运行时需要的初始动作：1.设置闹钟，每天24:00更新一次数据库 2.数据库初始化（两个表的内容的初始化）
-	 * 					    3.测试是否支持TrafficState类。
+	 * 描述		->		监视器初始化,重启后需要的初始动作：数据库保留的上次查询记录清零				    
 	 * 参数		->		无
 	 * 返回值		->		void
 	 */
-	public static void NetworkTrafficMonitorInitial(Context c) {
-		initialFirstNetTrafficQuery(c);
+	public static void initialForBootDoNetworkTrafficQuery(Context c) {
+		//手机重启之后的 总流量部分的初始化查询操作，跟程序安装的时候初始化查询是一样的，所以直接调用
+		initialForInstallDoNetTrafficQuery(c);
+		//每个应用程序的的流量的初始化操作 跟程序安装时候的初始化化不同	
+		//这里只需要将每个应用的上次查询清零即可
+		Calendar cal = Calendar.getInstance();
+		cal.setTimeInMillis(System.currentTimeMillis());
+		int monthNum = cal.get(Calendar.MONTH) + 1;
+		
+		ContentValues value1 = new ContentValues();
+		value1.put("dt_last_query", 0);
+		value1.put("ut_last_query", 0);
+		value1.put("date", monthNum);
+		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
+		try{
+			trafficInfoDBHelper.updateAppTraffic(value1);
+		}catch (Exception e) {
+			Log.e(TAG, e.getMessage());
+		}finally{
+			trafficInfoDBHelper.close();
+		}
+		
 	}
+	
 	/**
-	 * 函数名	->		initialFirstNetTrafficQuery
+	 * 函数名  	->		initialForInstallDoNetTrafficQuery
 	 * 作者		->		谢健
 	 * 时间		->		2013-8-26 上午10:32:34
-	 * 描述		->		安装时，查询一次当前手机内记录的从上次开机到现在使用的流量
+	 * 描述		->		安装时，查询一次当前手机内记录的从上次开机到现在使用的流量并用这些数据初始化数据库
 	 * 参数		->		
-	 * 返回值	->		void
+	 * 返回值	    ->		void
 	 */
-	public static void initialFirstNetTrafficQuery(Context c) {
-		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
+	public static void initialForInstallDoNetTrafficQuery(Context c) {
 		int dayNum;
 		int monthNum;
+		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
 		
 		Calendar cal = Calendar.getInstance();
 		cal.setTimeInMillis(System.currentTimeMillis());		
 		dayNum = cal.get(Calendar.DAY_OF_MONTH);
 		monthNum = cal.get(Calendar.MONTH) + 1;
+		
+		//程序安装时候  总流量的初始化查询 更新last_query
 		ContentValues values = new ContentValues();
 		values.put("dt", TrafficStats.getMobileRxBytes());
 		values.put("ut", TrafficStats.getMobileTxBytes());
@@ -369,11 +370,14 @@ public class NetworkTrafficMonitor {
 		values.put("id", 32);
 		try{
 			trafficInfoDBHelper.updateOneDayTraffic(values);
-		}catch(Exception e) {
-			Log.e(TAG, e.getMessage());
-		}finally {
+		}catch (Exception e) {
+			Log.e(TAG, "initialForInstallDoNetTrafficQuery*");
+		}finally{
 			trafficInfoDBHelper.close();
 		}
+		//程序安装时候  每个消耗流量的应用的初始化查询 更新last_query
+		initialForInstallDoGetApp(c);
+	
 	}
 	
 	/**
@@ -394,14 +398,113 @@ public class NetworkTrafficMonitor {
 		AlarmManager aManager = (AlarmManager)c.getSystemService(Service.ALARM_SERVICE);
 		//先将AlarmManager停止
 		aManager.cancel(pi);
-		aManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000*60*5, pi);
+		aManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000*60*3, pi);
 	}
 
+	/**
+	 * 函数名		->		initialForInstallDoGetApp
+	 * 作者		-> 	谢健
+	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
+	 * 参数		-> 	TODO
+	 * 描述		->		安装时初始化，通过遍历程序的权限，记录可以联入互联网的程序 初始化数据库
+	 * 返回值		-> 	void
+	 * 时间		->	 	2013-10-24 下午5:33:12 
+	*/
+	public static void initialForInstallDoGetApp(Context c){
+		PackageManager pm = c.getApplicationContext().getPackageManager();   
+		List<ApplicationInfo> appList = pm.getInstalledApplications(PackageManager.GET_PERMISSIONS);
+		for(ApplicationInfo ap : appList) 
+			checkNewInstallAppNeedNetwork(c,ap.packageName);	
+	}
+	
+	/**
+	 * 函数名		->		checkNewInstallAppNeedNetwork
+	 * 作者		-> 	谢健
+	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
+	 * 参数		-> 	TODO
+	 * 描述		->		当有新程序安装时 判断该程序是否有访问网络权限 然后决定将其加入数据库
+	 * 返回值		-> 	void
+	 * 时间		->	 	2013-10-24 下午5:36:01 
+	*/
+	public static void checkNewInstallAppNeedNetwork (Context c, String packageName){
+		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
+		PackageManager pm = c.getApplicationContext().getPackageManager();
+		try{
+			if(isAppNeedNetwork(c, packageName) == 1){
+				PackageInfo  pi = pm.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS);
+				Calendar cal = Calendar.getInstance();
+				cal.setTimeInMillis(System.currentTimeMillis());
+				int monthNum = cal.get(Calendar.MONTH) + 1;			
+				int uid = pi.applicationInfo.uid;
+				ContentValues value2 = new ContentValues();
+				value2.put("apk", packageName);
+				value2.put("ut_month", 0);
+				value2.put("dt_month", 0);
+				value2.put("date", monthNum);
+				value2.put("dt_last_query", TrafficStats.getUidRxBytes(uid));
+				value2.put("ut_last_query", TrafficStats.getUidTxBytes(uid));
+				trafficInfoDBHelper.insertAppTraffic(value2);
+			}	
+		}catch (Exception e) {
+			Log.e(TAG,e.getMessage());
+		}finally {
+			trafficInfoDBHelper.close();
+		}
+		
+	}
+	
+	/**
+	 * 函数名		->		checkNewUninstallAppNeedNetwork
+	 * 作者		-> 	谢健
+	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
+	 * 参数		-> 	TODO
+	 * 描述		->		当有新程序卸载时，判断该程序是否有访问网络的权限 然后决定是否将其从数据库中取出
+	 * 返回值		-> 	void
+	 * 时间		->	 	2013-10-24 下午5:44:24 
+	*/
+	public static void checkNewUninstallAppNeedNetwork(Context c, String packageName){
+		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
+		try{
+			if(isAppNeedNetwork(c, packageName) == 1)
+				trafficInfoDBHelper.delAppTraffic(packageName);
+		}catch (Exception e) {
+			Log.e(TAG,e.getMessage());
+		}finally {
+			trafficInfoDBHelper.close();
+		}
+	}
+	
+	/**
+	 * 函数名		->		isAppNeedNetwork
+	 * 作者		-> 	谢健
+	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
+	 * 参数		-> 	判断某个程序是否需要连接互联网的权限
+	 * 描述		->		TODO
+	 * 返回值		-> 	int
+	 * 时间		->	 	2013-10-24 下午8:19:21 
+	*/
+	public static int isAppNeedNetwork(Context c, String packageName) {
+		PackageManager pm = c.getApplicationContext().getPackageManager();
+		int isAccessInternet = 0;
+		try{
+			PackageInfo  pi = pm.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS);
+			String [] usesPermissionsArray=pi.requestedPermissions;
+			for(int i =0; i< usesPermissionsArray.length; i++ ){
+				if(usesPermissionsArray[i].equalsIgnoreCase(INTERNET)){
+					isAccessInternet = 1;
+					break;
+				}				
+			}
+		}catch (Exception e) {
+				Log.e(TAG, e.getMessage());
+		}
+		return isAccessInternet;
+	}
 	/**
 	 * 函数名		->		initialMonitor
 	 * 作者		->		谢健
 	 * 时间		->		2013-8-8 下午1:34:39
-	 * 描述		->		每次打开这个模块需要的初始化：1.获得已安装的所有应用，查询是否有新的应用安装
+	 * 描述		->		每次打开这个模块需要的初始化：1.获得已安装的所有应用，查询是否有新的应用安装2.测试是否支持TrafficState类。
 	 * 参数		->		
 	 * 返回值		->		void
 	 */
