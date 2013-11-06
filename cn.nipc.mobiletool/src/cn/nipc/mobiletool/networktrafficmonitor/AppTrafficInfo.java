@@ -10,7 +10,7 @@ import android.graphics.drawable.Drawable;
  * 描述	->		每个应用程序的信息，重点是使用的流量信息
  * 标签	->		
  */
-public class AppTrafficInfo {
+public class AppTrafficInfo implements Comparable<AppTrafficInfo>{
 	public String appName;
 	public Drawable appIcon;
 	public double downloadTraffic;
@@ -29,5 +29,17 @@ public class AppTrafficInfo {
 		this.dt_last_query = -1;
 		this.date = -1;
 		this.label = null;
+	}
+	
+	@Override
+	public int compareTo(AppTrafficInfo another) {
+		double thisTraffic = this.downloadTraffic + this.uploadTraffic;
+		double anTraffic = another.downloadTraffic + another.uploadTraffic;
+		if(thisTraffic < anTraffic)
+			return 1;
+		else if(thisTraffic == anTraffic)
+			return 0;
+		else
+			return -1;
 	}
 }

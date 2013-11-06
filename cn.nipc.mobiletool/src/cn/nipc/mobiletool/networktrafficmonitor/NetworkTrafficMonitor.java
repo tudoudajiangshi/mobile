@@ -235,15 +235,16 @@ public class NetworkTrafficMonitor {
 			trafficInfoDBHelper.close();
 		}
 		//最后获得根据包名 或者每个应用的图标和名字,一般系统程序没有图标，先过滤掉
+		/*
 		try{
 			for (AppTrafficInfo appTrafficInfo : appInfoList){
-				PackageInfo    pi = pm.getPackageInfo(appTrafficInfo.appName, PackageManager.GET_PERMISSIONS);
+				PackageInfo    pi = pm.getPackageInfo(appTrafficInfo.appName, 0);
 				appTrafficInfo.appIcon = pm.getApplicationIcon(pi.applicationInfo);
 				appTrafficInfo.label = (String)pi.applicationInfo.loadLabel(pm);
 			}
 		}catch (Exception e) {
 			Log.e(TAG, e.getMessage()+"找不到这个包名的app具体信息");
-		}
+		}*/
 		return appInfoList;
 	}
 	
@@ -268,6 +269,8 @@ public class NetworkTrafficMonitor {
 				PackageInfo  pi = pm.getPackageInfo(appTrafficInfo.appName, PackageManager.GET_PERMISSIONS);
 				double dt_now_query = TrafficStats.getUidRxBytes(pi.applicationInfo.uid);
 				double ut_now_query = TrafficStats.getUidTxBytes(pi.applicationInfo.uid);
+				if(dt_now_query + ut_now_query <= 0)
+					continue;
 				
 				//如果开机自启动被禁用 则可能出现负值 需要额外处理
 				if( (dt_now_query - appTrafficInfo.dt_last_query)<0 || 
@@ -322,18 +325,33 @@ public class NetworkTrafficMonitor {
 	 */
 	public static void initialForBootDoNetworkTrafficQuery(Context c) {
 		//手机重启之后的 总流量部分的初始化查询操作，跟程序安装的时候初始化查询是一样的，所以直接调用
-		initialForInstallDoNetTrafficQuery(c);
-		//每个应用程序的的流量的初始化操作 跟程序安装时候的初始化化不同	
-		//这里只需要将每个应用的上次查询清零即可
-		Calendar cal = Calendar.getInstance();
-		cal.setTimeInMillis(System.currentTimeMillis());
-		int monthNum = cal.get(Calendar.MONTH) + 1;
+		int dayNum;
+		int monthNum;
+		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
 		
+		Calendar cal = Calendar.getInstance();
+		cal.setTimeInMillis(System.currentTimeMillis());		
+		dayNum = cal.get(Calendar.DAY_OF_MONTH);
+		monthNum = cal.get(Calendar.MONTH) + 1;
+	
+		ContentValues values = new ContentValues();
+		values.put("dt", TrafficStats.getMobileRxBytes());
+		values.put("ut", TrafficStats.getMobileTxBytes());
+		values.put("date", dayNum + monthNum*100);
+		values.put("id", 32);
+		try{
+			trafficInfoDBHelper.updateOneDayTraffic(values);
+		}catch (Exception e) {
+			Log.e(TAG, "initialForBootDoNetworkTrafficQuery*");
+		}finally{
+			trafficInfoDBHelper.close();
+		}
+		//每个应用程序的的流量的初始化操作 跟程序安装时候的初始化化不同	
+		//这里只需要将每个应用的上次查询清零即可		
 		ContentValues value1 = new ContentValues();
 		value1.put("dt_last_query", 0);
 		value1.put("ut_last_query", 0);
 		value1.put("date", monthNum);
-		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
 		try{
 			trafficInfoDBHelper.updateAppTraffic(value1);
 		}catch (Exception e) {
@@ -431,7 +449,17 @@ public class NetworkTrafficMonitor {
 		PackageManager pm = c.getApplicationContext().getPackageManager();
 		try{
 			if(isAppNeedNetwork(c, packageName) == 1){
-				PackageInfo  pi = pm.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS);
+				PackageInfo  pi = pm.getPackageInfo(packageName, 0);
+/*				if((pi.applicationInfo.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0){
+					//系统更新出的应用
+					Log.e("xitong gengxin", packageName);
+				}
+				else if((pi.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0){
+					//系统更新用的应用
+					Log.e("xitong", packageName);
+				}
+				else 
+					Log.e("di sanfang",packageName);*/
 				Calendar cal = Calendar.getInstance();
 				cal.setTimeInMillis(System.currentTimeMillis());
 				int monthNum = cal.get(Calendar.MONTH) + 1;			
@@ -444,9 +472,10 @@ public class NetworkTrafficMonitor {
 				value2.put("dt_last_query", TrafficStats.getUidRxBytes(uid));
 				value2.put("ut_last_query", TrafficStats.getUidTxBytes(uid));
 				trafficInfoDBHelper.insertAppTraffic(value2);
+				Log.e(TAG, "tianjiale~~------");
 			}	
 		}catch (Exception e) {
-			Log.e(TAG,e.getMessage());
+			Log.e(TAG,packageName);
 		}finally {
 			trafficInfoDBHelper.close();
 		}
@@ -465,8 +494,7 @@ public class NetworkTrafficMonitor {
 	public static void checkNewUninstallAppNeedNetwork(Context c, String packageName){
 		TrafficInfoDBHelper trafficInfoDBHelper = new TrafficInfoDBHelper(c);
 		try{
-			if(isAppNeedNetwork(c, packageName) == 1)
-				trafficInfoDBHelper.delAppTraffic(packageName);
+			trafficInfoDBHelper.delAppTraffic(packageName);
 		}catch (Exception e) {
 			Log.e(TAG,e.getMessage());
 		}finally {
@@ -489,6 +517,9 @@ public class NetworkTrafficMonitor {
 		try{
 			PackageInfo  pi = pm.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS);
 			String [] usesPermissionsArray=pi.requestedPermissions;
+			if(usesPermissionsArray == null){
+				return isAccessInternet;
+			}			
 			for(int i =0; i< usesPermissionsArray.length; i++ ){
 				if(usesPermissionsArray[i].equalsIgnoreCase(INTERNET)){
 					isAccessInternet = 1;

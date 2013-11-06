@@ -34,7 +34,7 @@ public class BootBroadcastReceiver extends BroadcastReceiver{
 //            newIntent.setAction("android.intent.action.MAIN");             
 //            newIntent.addCategory("android.intent.category.LAUNCHER");            
 //            newIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);            
-            context.startActivity(intentNetwork);
+            context.startService(intentNetwork);
         }
 		//接收关机广播
 		if (intent.getAction().equals("android.intent.action.ACTION_SHUTDOWN")) {
@@ -47,13 +47,15 @@ public class BootBroadcastReceiver extends BroadcastReceiver{
             Log.e(TAG, "********"+packageName);
             Intent intentNetwork = new Intent(context, InstallNewAppService.class);
             intentNetwork.putExtra("packageName", packageName);
+            context.startService(intentNetwork);
         }
       //接收卸载程序广播
         if (intent.getAction().equals("android.intent.action.PACKAGE_REMOVED")) {
             String packageName = intent.getDataString().substring(8);
             Log.e(TAG, "********"+packageName);
-            Intent intentNetwork = new Intent(context, InstallNewAppService.class);
+            Intent intentNetwork = new Intent(context, UninstallAppService.class);
             intentNetwork.putExtra("packageName", packageName);
+            context.startService(intentNetwork);
         }
 	}
 	

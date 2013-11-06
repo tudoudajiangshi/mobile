@@ -2,20 +2,22 @@ package cn.nipc.mobiletool.networktrafficmonitor;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.Button;
-import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -56,6 +58,7 @@ public class NetworkTrafficMonitorActivity extends Activity {
 			Log.e(TAG, appTrafficInfo.appName+"**"+appTrafficInfo.label);
 		}*/
 		//NetworkTrafficMonitor.updateMonthNetTrafficPerApp(this);
+		
 	}
 
 	@Override
@@ -127,7 +130,22 @@ public class NetworkTrafficMonitorActivity extends Activity {
 	*/
 	private void initView2(View view2) {
 		ListView listview2 =  (ListView) view2.findViewById(R.id.listview_rank);
-		final List<AppTrafficInfo> list = NetworkTrafficMonitor.getMonthNetTrafficPerApp(this);
+		List<AppTrafficInfo> unsequenceList= NetworkTrafficMonitor.getMonthNetTrafficPerApp(this);
+		//去除流量为0的项
+		deleteZeroApp(unsequenceList);
+		//按流量大小排序
+		Collections.sort(unsequenceList);
+		PackageManager pm = this.getPackageManager();
+		try{
+			for (AppTrafficInfo appTrafficInfo : unsequenceList){
+				PackageInfo    pi = pm.getPackageInfo(appTrafficInfo.appName, 0);
+				appTrafficInfo.appIcon = pm.getApplicationIcon(pi.applicationInfo);
+				appTrafficInfo.label = (String)pi.applicationInfo.loadLabel(pm);
+			}
+		}catch (Exception e) {
+			Log.e(TAG, e.getMessage()+"找不到这个包名的app具体信息");
+		}
+		final List<AppTrafficInfo> list =unsequenceList;
 		ListAdapter listAdapter = new ListAdapter() {			
 			@Override
 			public void unregisterDataSetObserver(DataSetObserver observer) {
@@ -213,6 +231,24 @@ public class NetworkTrafficMonitorActivity extends Activity {
 		listview2.setAdapter(listAdapter);		
 	}
 	
+	public static void deleteZeroApp(List<AppTrafficInfo> appList ){
+		for(int i = 0; i < appList.size(); i++){
+			if(appList.get(i).downloadTraffic + appList.get(i).uploadTraffic <= 0){
+				appList.remove(i);
+				i--;
+			}
+		}
+	}
+	
+	/**
+	 * 函数名		->		format
+	 * 作者		-> 	谢健
+	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
+	 * 参数		-> 	TODO
+	 * 描述		->		规范流量字符串
+	 * 返回值		-> 	String
+	 * 时间		->	 	2013-10-25 下午2:47:06 
+	*/
 	private String format(Double a){
 		String formatString;
 		if(a/1024/1024 < 0.5){

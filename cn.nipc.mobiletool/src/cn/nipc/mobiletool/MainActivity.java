@@ -1,7 +1,7 @@
 package cn.nipc.mobiletool;
 
 import java.util.ArrayList;
-import cn.nipc.mobiletool.networktrafficmonitor.NetworkTrafficMonitor;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -27,7 +27,7 @@ import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
+import cn.nipc.mobiletool.networktrafficmonitor.NetworkTrafficMonitor;
 
 public class MainActivity extends Activity {	
 	
@@ -53,7 +53,7 @@ public class MainActivity extends Activity {
 			//一些安装的时候需要的初始化
 			//初始化流量查询
 			NetworkTrafficMonitor.initialForInstallDoNetTrafficQuery(this);
-			//NetworkTrafficMonitor.initialSetTimingQuery(this);
+			NetworkTrafficMonitor.initialSetTimingQuery(this);
 		}
 		//初始化定时流量查询 如果手机设置了禁止自启动 则需要每次启动应用程序是启动定时查询流量。
 		

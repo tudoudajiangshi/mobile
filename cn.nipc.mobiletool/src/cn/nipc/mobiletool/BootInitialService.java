@@ -32,14 +32,6 @@ public class BootInitialService extends Service{
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-//		Builder b = new AlertDialog.Builder(this);
-//	    b.setPositiveButton("ok", new DialogInterface.OnClickListener(){
-//	        @Override
-//	        public void onClick(DialogInterface dialog, int which) {
-//	            //finish();
-//	        }
-//	    });
-//	    b.create().show();
 		Log.e(TAG,"服务已开启");
 		//流量监控相关 1.重启后上次查询数据清零 2.设置定时更新数据库
 		NetworkTrafficMonitor.initialForBootDoNetworkTrafficQuery(this);
