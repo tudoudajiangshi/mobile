@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+    <PreferenceCategory android:title="流量管理">
+	    <CheckBoxPreference  
+			android:key="autoBack"  
+			android:title="自动回复"   
+			android:defaultValue="true"/>
+	    <EditTextPreference 
+	        android:key="monthTraffic"
+	        android:title="每月流量套餐"
+	        android:dialogTitle="请输入每月流量套餐额度"/>
+	    <PreferenceScreen 
+	        android:title="流量悬浮框">
+	        <CheckBoxPreference  
+				android:key="float_window"  
+				android:title="开启流量悬浮窗"  
+				android:defaultValue="false"/>
+	        <CheckBoxPreference  
+				android:key="window_fixed"  
+				android:title="固定流量悬浮框"  
+				android:defaultValue="false"/>
+	        <CheckBoxPreference  
+				android:key="only_desktop"  
+				android:title="仅在桌面上显示"  
+				android:defaultValue="false"/>
+	        <CheckBoxPreference  
+				android:key="suppot_puton_notify"  
+				android:title="支持拖动至通知栏"  
+				android:defaultValue="false"/>
+	    </PreferenceScreen>
+	</PreferenceCategory>
+	<PreferenceCategory android:title="流量统计显示">
+	    
+	</PreferenceCategory>
+
+</PreferenceScreen>

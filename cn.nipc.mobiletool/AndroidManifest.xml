@@ -42,6 +42,12 @@
             android:label="@string/title_activity_network_traffic_monitor" >
         </activity>
         
+        <activity
+            android:name="cn.nipc.mobiletool.networktrafficmonitor.NetworkTrafficMonitorSetActivity"
+            android:label="@string/network_traffic_set"
+            >
+        </activity>
+        
 <!-- 广播接收器 -->     
         <receiver 
             android:name=".BootBroadcastReceiver">

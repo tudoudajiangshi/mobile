@@ -18,8 +18,10 @@
             android:textSize="20sp"
             android:text="@string/network_traffic_monitor"/>
         <ImageView 
+            android:id = "@+id/net_monitor_back"
             style="@style/title_image_back"/>
         <ImageView
+            android:id = "@+id/net_monitor_set"
             style="@style/title_image_set"/>
     </RelativeLayout>
     

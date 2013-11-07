@@ -1,28 +1,22 @@
 package cn.nipc.mobiletool.networktrafficmonitor;
 
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 
-import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.database.DataSetObserver;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
+import android.view.View.OnClickListener;
 import android.widget.ImageView;
-import android.widget.ListAdapter;
-import android.widget.ListView;
-import android.widget.TextView;
-import cn.nipc.mobiletool.MainActivityPagerAdapter;
 import cn.nipc.mobiletool.R;
 
 /**
@@ -32,12 +26,14 @@ import cn.nipc.mobiletool.R;
  * 描述	->		流量监控模块主界面
  * 标签	->		流量监控
  */
-public class NetworkTrafficMonitorActivity extends Activity {
+public class NetworkTrafficMonitorActivity extends FragmentActivity {
 	
 	public String TAG = "NetworkTrafficMonitorActivity";
 	private ViewPager viewPager;
+	/** 页面list **/
+    List<Fragment> fragmentList = new ArrayList<Fragment>();
+    public Context context = this;
 	
-	private ArrayList<View> listView;
 	public int last_query = 32; //一个月最多31天 ，数据库中第32天存放的上次查询所获得的流量值
 
 	@Override
@@ -52,6 +48,8 @@ public class NetworkTrafficMonitorActivity extends Activity {
 			spEditor.commit();  
 		}
 		initViewPager();
+		initBackbutton();
+		initSetbutton();
 		//测试一些函数
 		/*List<AppTrafficInfo> appInfoList = NetworkTrafficMonitor.getMonthNetTrafficPerApp(this);
 		for (AppTrafficInfo appTrafficInfo : appInfoList){
@@ -72,192 +70,97 @@ public class NetworkTrafficMonitorActivity extends Activity {
 	 * 函数名		->		initViewPager
 	 * 作者		->		谢健
 	 * 时间		->		2013-8-7 下午1:46:19
-	 * 描述		->		初始化ViewPager，共分三个页面 1.流量监控 2.联网防火墙 3.统计排行
+	 * 描述		->		初始化ViewPager，共分三个页面 1.流量监控 2.联网防火墙 (第二个由于权限不够 悲剧了-。-)3.统计排行
 	 * 参数		->		无
 	 * 返回值		->		void
 	 */
 	private void initViewPager() {
 		viewPager = (ViewPager) findViewById(R.id.view_pager);
-		listView  = new ArrayList<View>();
-		View view0= getLayoutInflater().inflate(R.layout.network_traffic_monitor, null);
-		initView0(view0);
+		//listView  = new ArrayList<View>();
+		Fragment fNetTrafficMonitor = new NetTrafficFragment();
+		Fragment fNetTrafficRank = new NetRankFragment();
 		
-		View view1= getLayoutInflater().inflate(R.layout.network_traffic_firewall, null);
-		
-		View view2= getLayoutInflater().inflate(R.layout.network_traffic_rank, null);
-		initView2(view2);
-		
-		listView.add(view0);
-		listView.add(view1);
-		listView.add(view2);
-		viewPager.setAdapter(new MainActivityPagerAdapter(NetworkTrafficMonitorActivity.this, listView));
+		fragmentList.add(fNetTrafficMonitor);
+		fragmentList.add(fNetTrafficRank);
+		viewPager.setAdapter(new FragmentPagerAdapter(getSupportFragmentManager()){
+
+			@Override
+			public Fragment getItem(int arg0) {
+				return (fragmentList == null || fragmentList.size() == 0) ? null : fragmentList.get(arg0);
+			}
+
+			@Override
+			public int getCount() {
+				return fragmentList == null ? 0 : fragmentList.size();
+			}
+			
+		});
 		viewPager.setCurrentItem(0);
-		viewPager.setPageMargin(50);
+		viewPager.setOffscreenPageLimit(0);
+		viewPager.setPageMargin(20);
 		//viewPager.setOnPageChangeListener(new MyOnPageChangeListener());
 	}
 	
 	/**
-	 * 函数名	->		initView0
-	 * 作者		->		谢健
-	 * 时间		->		2013-8-7 下午1:50:23
-	 * 描述		->		初始化流量监控页面。
-	 * 参数		->		view0
-	 * 返回值	->		void
-	 */
-	private void initView0(View view0) {
-		//获得今天是本月几号
-		Calendar cal = Calendar.getInstance();
-		cal.setTimeInMillis(System.currentTimeMillis());
-		int dayNum = cal.get(Calendar.DAY_OF_MONTH);
-		
-		TextView textViewTodayUsage = (TextView)view0.findViewById(R.id.today_usage);
-		textViewTodayUsage.setText(""+NetworkTrafficMonitor.getTodayNetTraffic(this)/1024 + "Kb");
-		
-		TextView textViewMonthUsage = (TextView)view0.findViewById(R.id.month_usage);
-		textViewMonthUsage.setText(""+NetworkTrafficMonitor.getMonthNetTraffic(this)/1024/1024 + "Mb");
-		
-		Button buttonSetMonth = (Button)view0.findViewById(R.id.set_month);
-		
-	}
-	
-	/**
-	 * 函数名		->		initView2
-	 * 作者		-> 	谢健
-	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
-	 * 参数		-> 	View
-	 * 返回值		-> 	void
-	 * 时间		->	 	2013-10-17 上午11:05:25 
-	*/
-	private void initView2(View view2) {
-		ListView listview2 =  (ListView) view2.findViewById(R.id.listview_rank);
-		List<AppTrafficInfo> unsequenceList= NetworkTrafficMonitor.getMonthNetTrafficPerApp(this);
-		//去除流量为0的项
-		deleteZeroApp(unsequenceList);
-		//按流量大小排序
-		Collections.sort(unsequenceList);
-		PackageManager pm = this.getPackageManager();
-		try{
-			for (AppTrafficInfo appTrafficInfo : unsequenceList){
-				PackageInfo    pi = pm.getPackageInfo(appTrafficInfo.appName, 0);
-				appTrafficInfo.appIcon = pm.getApplicationIcon(pi.applicationInfo);
-				appTrafficInfo.label = (String)pi.applicationInfo.loadLabel(pm);
-			}
-		}catch (Exception e) {
-			Log.e(TAG, e.getMessage()+"找不到这个包名的app具体信息");
-		}
-		final List<AppTrafficInfo> list =unsequenceList;
-		ListAdapter listAdapter = new ListAdapter() {			
-			@Override
-			public void unregisterDataSetObserver(DataSetObserver observer) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void registerDataSetObserver(DataSetObserver observer) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public boolean isEmpty() {
-				return list.isEmpty();
-			}
-			
-			@Override
-			public boolean hasStableIds() {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-			@Override
-			public int getViewTypeCount() {
-				// TODO Auto-generated method stub
-				return 1;
-			}
-			
-			@Override
-			public View getView(int position, View convertView, ViewGroup parent) {
-				View item = getLayoutInflater().inflate(R.layout.network_traffic_rank_item, null);
-				ImageView iv = (ImageView) item.findViewById(R.id.icon);
-				TextView tv_label = (TextView) item.findViewById(R.id.label);
-				TextView tv_dt = (TextView) item.findViewById(R.id.dt);
-				TextView tv_ut = (TextView) item.findViewById(R.id.ut);
-				
-				iv.setImageDrawable(list.get(position).appIcon);
-				tv_label.setText(list.get(position).label);
-				tv_dt.setText("下载："+format(list.get(position).downloadTraffic));
-				tv_ut.setText("上传："+format(list.get(position).uploadTraffic));
-				
-				return item;
-			}
-			
-			@Override
-			public int getItemViewType(int position) {
-				// TODO Auto-generated method stub
-				return 0;
-			}
-			
-			@Override
-			public long getItemId(int position) {
-				// TODO Auto-generated method stub
-				return position;
-			}
-			
-			@Override
-			public Object getItem(int position) {
-				// TODO Auto-generated method stub
-				return list.get(position);
-			}
-			
-			@Override
-			public int getCount() {
-				// TODO Auto-generated method stub
-				return list.size();
-			}
-			
-			@Override
-			public boolean isEnabled(int position) {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-			@Override
-			public boolean areAllItemsEnabled() {
-				// TODO Auto-generated method stub
-				return false;
-			}
-		}; 
-		listview2.setAdapter(listAdapter);		
-	}
-	
-	public static void deleteZeroApp(List<AppTrafficInfo> appList ){
-		for(int i = 0; i < appList.size(); i++){
-			if(appList.get(i).downloadTraffic + appList.get(i).uploadTraffic <= 0){
-				appList.remove(i);
-				i--;
-			}
-		}
-	}
-	
-	/**
-	 * 函数名		->		format
+	 * 函数名		->		initBackbutton
 	 * 作者		-> 	谢健
 	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
 	 * 参数		-> 	TODO
-	 * 描述		->		规范流量字符串
-	 * 返回值		-> 	String
-	 * 时间		->	 	2013-10-25 下午2:47:06 
+	 * 描述		->		设置返回键
+	 * 返回值		-> 	void
+	 * 时间		->	 	2013-11-7 上午11:12:10 
 	*/
-	private String format(Double a){
-		String formatString;
-		if(a/1024/1024 < 0.5){
-			formatString = String.format("%5.2fKB", a/1024);
+	private void initBackbutton(){
+		ImageView iv = (ImageView)findViewById(R.id.net_monitor_back);
+		iv.setClickable(true);
+		iv.setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View arg0) {
+				//结束这个activity
+				NetworkTrafficMonitorActivity.this.finish();
+			}
+		});
+	}
+	
+	/**
+	 * 函数名		->		initSetbutton
+	 * 作者		-> 	谢健
+	 * 适用条件	-> 	(这里描述这个方法适用条件 – 可选)
+	 * 参数		-> 	TODO
+	 * 描述		->		流量监控的设置页面
+	 * 返回值		-> 	void
+	 * 时间		->	 	2013-11-7 上午11:13:41 
+	*/
+	private void initSetbutton(){
+		ImageView iv = (ImageView)findViewById(R.id.net_monitor_set);
+		iv.setClickable(true);
+		iv.setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View arg0) {
+				//跳转至设置页面
+				Intent intent = new Intent(); 
+				intent.setClass(NetworkTrafficMonitorActivity.this, NetworkTrafficMonitorSetActivity.class);
+				startActivityForResult(intent, 0);
+				
+			}
+		});
+	}
+	
+	@Override 
+	protected void onActivityResult(int requestCode, int resultCode, Intent data){
+		if(requestCode == 0){
+			switch (resultCode) {
+			case RESULT_OK:
+				Log.e(TAG, "setting page back success!!!");
+				break;
+
+			default:
+				break;
+			}
 		}
-		else {
-			formatString = String.format("%5.2fMB", a/1024/1024);
-		}
-		return formatString ;
+		
 	}
 
 }
