@@ -2,35 +2,20 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
     <PreferenceCategory android:title="流量管理">
 	    <CheckBoxPreference  
-			android:key="autoBack"  
-			android:title="自动回复"   
+			android:key="open_monitor"  
+			android:title="打开流量监控"   
 			android:defaultValue="true"/>
 	    <EditTextPreference 
 	        android:key="monthTraffic"
 	        android:title="每月流量套餐"
 	        android:dialogTitle="请输入每月流量套餐额度"/>
-	    <PreferenceScreen 
-	        android:title="流量悬浮框">
-	        <CheckBoxPreference  
-				android:key="float_window"  
-				android:title="开启流量悬浮窗"  
-				android:defaultValue="false"/>
-	        <CheckBoxPreference  
-				android:key="window_fixed"  
-				android:title="固定流量悬浮框"  
-				android:defaultValue="false"/>
-	        <CheckBoxPreference  
-				android:key="only_desktop"  
-				android:title="仅在桌面上显示"  
-				android:defaultValue="false"/>
-	        <CheckBoxPreference  
-				android:key="suppot_puton_notify"  
-				android:title="支持拖动至通知栏"  
-				android:defaultValue="false"/>
-	    </PreferenceScreen>
+	    <CheckBoxPreference
+	        android:key="open_float_window"
+	        android:title="显示流量悬浮窗"/>
 	</PreferenceCategory>
-	<PreferenceCategory android:title="流量统计显示">
-	    
+	<PreferenceCategory android:title="流量统计提示">
+	    <CheckBoxPreference 
+	        android:key = "traffic_run_out"
+	        android:title="流量超额提醒"/>    
 	</PreferenceCategory>
-
 </PreferenceScreen>

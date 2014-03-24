@@ -1,22 +1,13 @@
-/**
- * ����	->		TrafficDB��ݿ�����쳣��
- * ����	->		л��
- * ʱ��	->		2013-7-23 ����4:13:18
- * ����	->		����TrafficDB����������쳣
- * ���	->		TrafficDBAccessException.java
- */
 package cn.nipc.mobiletool.networktrafficmonitor;
 
 /**
- * ����	 		TrafficDBAccessException
- * ���� 			л��
- * ʱ�� 			2013-7-23 ����4:13:18
- * ����		 	����TrafficDB����������쳣 ���Ϊ1000L
+ * 类名	->		TrafficDBAccessException
+ * 作者	->		谢健
+ * 时间	->		2013-11-11 下午3:51:36
+ * 描述	->		数据库处理异常类
+ * 标签	->		TODO
  */
 public class TrafficDBAccessException extends Exception {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1000L;
 	public TrafficDBAccessException(){}
 	public TrafficDBAccessException(String msg){

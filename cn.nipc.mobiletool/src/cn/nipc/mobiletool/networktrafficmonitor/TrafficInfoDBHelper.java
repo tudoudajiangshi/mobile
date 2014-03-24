@@ -27,7 +27,7 @@ public class TrafficInfoDBHelper extends SQLiteOpenHelper{
             + " all_traffic(id INTEGER primary key autoincrement,date INTEGER,dt DOUBLE,ut DOUBLE) ";  
     private SQLiteDatabase db;  
     
-    public TrafficInfoDBHelper(Context c) {  
+    public TrafficInfoDBHelper(Context c) {   
         super(c, DB_NAME, null, 2);  
     }  
 
